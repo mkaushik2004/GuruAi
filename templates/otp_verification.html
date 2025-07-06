@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OTP Verification</title>
+  <link rel="icon"  href="../static/icon.ico">
+  
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .otp-container {
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    p {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: #666;
+    }
+
+    .otp-form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: #007bff;
+    }
+
+    button {
+      padding: 10px;
+      font-size: 16px;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .error-message {
+      color: #f44336;
+      font-size: 14px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="otp-container">
+    <h2>Verify Your OTP</h2>
+    <p id="otp-message">A one-time password (OTP) has been sent to your email. Please enter it below to verify your account.</p>
+    
+    <form id="otpForm" class="otp-form">
+      <label for="otp">Enter OTP:</label>
+      <input type="text" id="otp" name="otp" placeholder="Enter OTP" required maxlength="6">
+      <button type="submit">Verify OTP</button>
+      <br>
+      <button type="button" id="resendBtn">Resent OTP</button>
+    </form>
+    
+    <p id="error-message" class="error-message"></p>
+  </div>
+
+<script>
+    document.getElementById('otpForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const otp = document.getElementById('otp').value;
+        const errorMessageElement = document.getElementById('error-message');
+        const successMessageElement = document.getElementById('success-message');
+
+        const otpMessageElement = document.getElementById('otp-message');
+        if (otpMessageElement) otpMessageElement.textContent = '';
+
+        errorMessageElement.textContent = '';
+        if (successMessageElement) successMessageElement.textContent = '';
+
+        if (!otp || otp.length !== 6) {
+            errorMessageElement.textContent = 'Please enter a valid 6-digit OTP.';
+            return;
+        }
+
+        fetch('/api/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ otp: otp })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (successMessageElement) {
+                    successMessageElement.textContent = 'OTP verified successfully!';
+                }
+                setTimeout(() => {
+                    window.location.href = '/login.html';
+                }, 1500);
+            } else {
+                errorMessageElement.textContent = data.message || 'Invalid OTP. Please try again.';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorMessageElement.textContent = 'An error occurred while verifying the OTP.';
+        });
+    });
+
+    document.getElementById('resendBtn').addEventListener('click', function() {
+        const errorMessageElement = document.getElementById('error-message');
+        const successMessageElement = document.getElementById('success-message');
+        const otpMessageElement = document.getElementById('otp-message');
+
+        errorMessageElement.textContent = '';
+        if (successMessageElement) successMessageElement.textContent = 'jddhjdhds';
+
+        fetch('/api/resend-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+              otpMessageElement.textContent = 'New OTP has been sent to your email!';
+                if (successMessageElement) {
+                    successMessageElement.textContent = 'New OTP has been sent to your email!';
+                }
+            } else {
+                errorMessageElement.textContent = data.message || 'Failed to resend OTP. Please try again.';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorMessageElement.textContent = 'An error occurred while resending the OTP.';
+        });
+    });
+</script>
+</body>
+</html>

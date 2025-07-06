@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Guru AI</title>
+    <link rel="icon"  href="../static/icon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Add Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <!-- <script src="https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.8.1/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js"></script> -->
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Add jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    
+
+<style>
+    :root {
+        --primary-color: #4a1fb8;
+        --secondary-color: #6c5ce7;
+        --light-color: #f8f9fa;
+        --dark-color: #343a40;
+        --accent-color: #00cec9;
+    }
+
+    body {
+        font-family: 'Nunito Sans', sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(to right, #f5f7fa, #e0eafc);
+    }
+
+    .dashboard-container {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        background: white;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.08);
+        padding: 30px 20px;
+        border-right: 1px solid #ddd;
+    }
+
+    .sidebar h2 {
+        margin-bottom: 20px;
+        font-size: 20px;
+        color: var(--primary-color);
+    }
+
+    .sidebar button {
+        display: block;
+        width: 100%;
+        padding: 12px 15px;
+        margin-bottom: 15px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background 0.3s, transform 0.2s;
+    }
+
+    .sidebar button:hover {
+        background: var(--secondary-color);
+        transform: scale(1.03);
+        box-shadow: 0 4px 12px rgba(76, 61, 249, 0.2);
+    }
+
+    .main-content {
+        padding: 40px;
+        overflow-y: auto;
+    }
+
+    .welcome-header h1 {
+        font-size: 28px;
+        margin-bottom: 5px;
+        color: var(--dark-color);
+    }
+
+    .welcome-header p {
+        font-size: 16px;
+        color: #555;
+        margin-bottom: 30px;
+    }
+
+    .subjects-section h2,
+    .performance-section h2 {
+        font-size: 22px;
+        margin-bottom: 20px;
+        color: var(--primary-color);
+    }
+
+    .subjects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 20px;
+    }
+
+    .subject-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .subject-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.08);
+        background-color: #f9f9ff;
+    }
+
+    .performance-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .performance-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+        transition: box-shadow 0.3s;
+    }
+
+    .performance-card:hover {
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .performance-card h3 {
+        margin-bottom: 10px;
+        font-size: 18px;
+        color: var(--dark-color);
+    }
+
+    .performance-card p {
+        margin: 4px 0;
+        font-size: 14px;
+    }
+
+    .progress-bar {
+        height: 12px;
+        background: #e0e0e0;
+        border-radius: 6px;
+        margin-top: 10px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--accent-color);
+        width: 0%;
+        transition: width 1s ease;
+        border-radius: 6px;
+    }
+
+    .feedback {
+        font-weight: 600;
+        margin-top: 10px;
+        color: var(--secondary-color);
+    }
+
+    .loading,
+    .no-data,
+    .error {
+        padding: 20px;
+        text-align: center;
+        grid-column: 1 / -1;
+        color: #999;
+    }
+
+    .mock-data {
+        opacity: 0.7;
+        border-left: 4px solid #fbbc05;
+        padding-left: 10px;
+        margin-top: 10px;
+    }
+
+    canvas {
+        margin-top: 10px;
+        max-height: 100px !important;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-container {
+            grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+            border-right: none;
+            border-bottom: 1px solid #ddd;
+        }
+    }
+
+    .performance-card.avg {
+        background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+        color: white;
+    }
+
+    .error {
+        color: #e74c3c;
+        background: #fdf2f2;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        border: 1px solid #f5c6cb;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+    }
+</style>
+
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="sidebar">
+            <h2>Navigation</h2>
+            <button onclick="window.location.href='/chat.html'">Chat with AI</button>
+            <button onclick="window.location.href='/quiz.html'">Take Quiz</button>
+            <button onclick="logout()">Logout</button>
+        </div>
+        
+        <div class="main-content">
+            <div class="welcome-header">
+                <h1>Welcome, <span id="username"></span></h1>
+                <p> <span id="user-class"></span> | <span id="user-stream"></span></p>
+            </div>
+            
+            <div class="subjects-section">
+                <h2>Your Subjects</h2>
+                <div class="subjects-grid" id="subjects-container">
+                    <!-- Subjects will be loaded here -->
+                </div>
+            </div>
+            
+            <div class="performance-section">
+                <h2>Your Performance</h2>
+                <div class="performance-cards" id="performance-container">
+                    <!-- Quiz scores will be loaded here -->
+                </div>
+            </div>
+            <br><br>
+            <!-- <button style="margin-left: 10px; background: #4a1fb8; border: solid 2px #4a1fb8; color: #ffffff;  padding: 12px; cursor: pointer; border-radius: 8px; font-size:16; " onclick="exportPerformancePDF()">Export Report as PDF</button> -->
+        </div>
+
+
+    </div>
+
+
+
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+        apiKey: "AIzaSyCFifl-yMpaMr0wxT1sKL_yaysB2YqkJn4",
+        authDomain: "guru-ai-project-id.firebaseapp.com",
+        databaseURL: "https://guru-ai-project-id-default-rtdb.firebaseio.com",
+        projectId: "guru-ai-project-id",
+        storageBucket: "guru-ai-project-id.firebasestorage.app",
+        messagingSenderId: "742849141751",
+        appId: "1:742849141751:web:739686e13e5f78a9652cf2",
+        measurementId: "G-XYC0R2DBQR"
+        };
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        // Load user data on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Get user data from session
+                const response = await fetch('/api/user');
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const userData = await response.json();
+                console.log('User data received:', userData);
+                
+                if (!userData || !userData.user) {
+                    throw new Error('No user data received from server');
+                }
+                
+                // Display basic info
+                document.getElementById('username').textContent = userData.user.name || 'User';
+                document.getElementById('user-class').textContent = `Class ${userData.user.class || 'N/A'}`;
+                document.getElementById('user-stream').textContent = userData.user.stream !== 'NA' ? 
+                    userData.user.stream : '';
+                
+                // Load subjects based on class/stream
+                loadSubjects(userData.user.class, userData.user.stream);
+                
+                // Load performance data
+                // loadPerformanceData(userData.user.email);
+                loadPerformanceData();
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                document.getElementById('username').textContent = 'Error loading user data';
+                document.getElementById('user-class').textContent = 'Please refresh the page';
+                document.getElementById('subjects-container').innerHTML = '<div class="error">Failed to load subjects. Please try logging in again.</div>';
+            }
+        });
+        
+        function loadSubjects(classLevel, stream) {
+            const subjectsContainer = document.getElementById('subjects-container');
+            let subjects = [];
+            
+            // Common subjects for all classes
+            const commonSubjects = ['English', 'Maths', 'Science'];
+            
+            // Class-specific subjects
+            if (classLevel >= 6 && classLevel <= 10) {
+                subjects = ['Social ',...commonSubjects];
+            } else if (classLevel >= 11 && classLevel <= 12) {
+                if (stream === 'Science') {
+                    subjects = ['Physics', 'Chemistry', 'Biology', ...commonSubjects];
+                } else if (stream === 'Commerce') {
+                    subjects = ['Accountancy', 'Business Studies', 'Economics', ...commonSubjects];
+                } else {
+                    subjects = ['History', 'Political Science', 'Geography', ...commonSubjects];
+                }
+            }
+            
+            // Render subject cards
+            subjectsContainer.innerHTML = subjects.map(subject => `
+                <div class="subject-card" onclick="openSubject('${subject}')">
+                    <h3>${subject}</h3>
+                </div>
+            `).join('');
+        }
+        
+
+async function loadPerformanceData() {
+    const performanceContainer = document.getElementById('performance-container');
+    performanceContainer.innerHTML = '<div class="loading">Loading performance data...</div>';
+
+    try {
+        const response = await fetch('/api/user');
+        const result = await response.json();
+        const scores = result.user.scores || {};
+        const history = result.user.scoreHistory || {};
+
+        const avgScore = Object.values(scores).length > 0
+            ? (Object.values(scores).reduce((a, b) => a + b, 0) / Object.values(scores).length).toFixed(2)
+            : null;
+
+        // Build subject cards
+        const cards = Object.entries(scores).map(([subject, score]) => {
+            const hist = history[subject] || [];
+            const lastQuizTime = hist.length ? new Date(hist[hist.length - 1].timestamp).toLocaleString() : 'Never';
+
+            let feedback = 'Keep going!';
+            if (score >= 90) feedback = 'Excellent!';
+            else if (score >= 75) feedback = 'Very Good!';
+            else if (score >= 50) feedback = 'Good effort!';
+            else feedback = 'Needs Improvement!';
+
+            return `
+                <div class="performance-card">
+                    <h3>${subject}</h3>
+                    <p>${score}%</p>
+                    <p><small>Last quiz: ${lastQuizTime}</small></p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${score}%"></div>
+                    </div>
+                    <p class="feedback">${feedback}</p>
+                    <canvas id="chart-${subject}" height="100"></canvas>
+                </div>
+            `;
+        }).join('');
+
+        // Average card
+        let avgCard = avgScore !== null ? `
+            <div class="performance-card avg">
+                <h3>Average Score</h3>
+                <p>${avgScore}%</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${avgScore}%; background:#6c5ce7"></div>
+                </div>
+            </div>
+        ` : '';
+
+        performanceContainer.innerHTML = avgCard + cards;
+
+        // Render charts
+        Object.entries(history).forEach(([subject, entries]) => {
+            const ctx = document.getElementById(`chart-${subject}`)?.getContext('2d');
+            if (ctx && entries.length) {
+                const labels = entries.map(e => new Date(e.timestamp).toLocaleDateString());
+                const data = entries.map(e => e.score);
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Score Over Time',
+                            data,
+                            fill: false,
+                            borderColor: 'blue',
+                            tension: 0.1
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+        });
+
+    } catch (error) {
+        console.error("Error loading performance data:", error);
+        performanceContainer.innerHTML = `<div class="error">Failed to load performance data. ${error.message}</div>`;
+    }
+}
+
+function exportPerformancePDF() {
+    const el = document.getElementById('performance-container');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.html(el, {
+        callback: function (doc) {
+            doc.save("performance.pdf");
+        },
+        x: 10,
+        y: 10
+    });
+}
+
+function openSubject(subject) {
+    localStorage.setItem('currentSubject', subject);
+    window.location.href = '/chat.html';
+}
+
+function logout() {
+    fetch('/api/logout', { method: 'POST' })
+        .then(() => window.location.href = '/index.html');
+}
+    </script>
+</body>
+</html>
